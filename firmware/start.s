@@ -1,6 +1,25 @@
+#include "custom_ops.S"
+
     .section .text
     .global _start
     .global main
+
+reset_vec:
+    // no more than 16 bytes
+    j _start
+
+.balign 16
+irq_vec:
+    xgsoc_retirq_insn()
+
+irq_regs:
+    // registers are saved to this memory region during interrupt handling
+    // the program counter is saved as register 0
+    .fill 32,4
+
+    // stack for the interrupt handler
+    .fill 128,4
+irq_stack:
 
 _start:
     add x1,x0,x0

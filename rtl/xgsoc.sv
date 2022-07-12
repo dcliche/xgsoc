@@ -118,6 +118,10 @@ module xgsoc #(
 `endif
     );
 
+    // interrupts
+    logic [31:0] irq;   // interrupt request
+    logic [31:0] eoi;   // end of interrupt
+
     // bus
     logic        sel;
     logic [31:0] addr;
@@ -430,9 +434,31 @@ module xgsoc #(
         end
     end
 
+    // timer
+    logic [15:0] timer_value;
+    logic timer_irq;
+    always_ff @(posedge clk) begin
+        if (reset_i) begin
+            timer_value <= FREQ_HZ / 1000 - 1;
+            timer_irq <= 1'b0;
+        end else begin
+            if (eoi[0])
+                timer_irq <= 1'b0;
+            timer_value <= timer_value - 1;
+            if (timer_value == 16'd0) begin
+                timer_irq <= 1'b1;
+                timer_value <= FREQ_HZ / 1000 - 1;
+            end
+        end
+    end
+
+    always_comb irq = {31'd0, timer_irq};
+
     processor cpu(
         .clk(clk),
         .reset_i(reset_i),
+        .irq_i(irq),
+        .eoi_o(eoi),
         .sel_o(sel),
         .addr_o(addr),
         .we_o(cpu_we),
